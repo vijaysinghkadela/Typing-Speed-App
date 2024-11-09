@@ -8,7 +8,8 @@ const TypingSpeedTest = () => {
   const [wpm, setWPM] = useState(0);
   const [accuracy, setAccuracy] = useState(0);
   const [isTextLoaded, setIsTextLoaded] = useState(false);
-  const [wordCount, setWordCount] = useState(5); // default word count
+  const [wordCount, setWordCount] = useState(5);
+  const [activeKey, setActiveKey] = useState(null);
 
   // Fetch text from API based on word count
   useEffect(() => {
@@ -16,15 +17,18 @@ const TypingSpeedTest = () => {
   }, [wordCount]);
 
   const fetchNewText = (count) => {
-    fetch(
-      `https://baconipsum.com/api/?type=all-meat&paras=1&sentences=${count}`
-    )
+    const sentences = Math.ceil(count / 10);
+    fetch(`https://baconipsum.com/api/?type=all-meat&paras=1&sentences=${sentences}`)
       .then((response) => response.json())
       .then((data) => {
-        setCurrentText(data[0]);
-        setIsTextLoaded(true); // Ensure text is loaded before typing
+        setCurrentText(data[0].split(" ").slice(0, count).join(" "));
+        setIsTextLoaded(true);
       })
-      .catch((error) => console.error("Error fetching text:", error));
+      .catch((error) => {
+        console.error("Error fetching text:", error);
+        setCurrentText("Sample text for testing purposes.");
+        setIsTextLoaded(true);
+      });
   };
 
   const handleWordCountChange = (e) => {
@@ -32,7 +36,6 @@ const TypingSpeedTest = () => {
     setIsTextLoaded(false);
   };
 
-  // Timer logic
   useEffect(() => {
     let timer;
     if (isTyping) {
@@ -45,21 +48,12 @@ const TypingSpeedTest = () => {
     const input = e.target.value;
     setUserInput(input);
 
-    // Start timer on first keystroke
     if (!isTyping && isTextLoaded) setIsTyping(true);
 
-    // Real-time accuracy checking
-    const correctChars = input
-      .split("")
-      .filter((char, i) => char === currentText[i]).length;
-    const calculatedAccuracy =
-      input.length > 0 ? Math.round((correctChars / input.length) * 100) : 0;
+    const correctChars = input.split("").filter((char, i) => char === currentText[i]).length;
+    const calculatedAccuracy = input.length > 0 ? Math.round((correctChars / input.length) * 100) : 0;
     setAccuracy(calculatedAccuracy);
 
-    // Calculate WPM continuously
-    calculateResults();
-
-    // Stop typing when input matches the target text
     if (input === currentText) {
       setIsTyping(false);
       calculateResults();
@@ -68,10 +62,9 @@ const TypingSpeedTest = () => {
 
   const calculateResults = () => {
     if (time === 0) return;
-
-    const wordCount = currentText.split(" ").length;
+    const wordsTyped = currentText.split(" ").length;
     const minutes = time / 60;
-    setWPM(Math.round(wordCount / minutes));
+    setWPM(Math.round(wordsTyped / minutes));
   };
 
   const handleRestart = () => {
@@ -85,15 +78,47 @@ const TypingSpeedTest = () => {
   };
 
   const handleSubmit = () => {
-    alert(`WPM: ${wpm}, Accuracy: ${accuracy}% , Timer: ${time}s`);
-    setUserInput("");
-    setTime(0);
-    setIsTyping(false);
-    setWPM(0);
-    setAccuracy(0);
-    setIsTextLoaded(false);
-    fetchNewText(wordCount);
+    if (!isTyping && userInput === currentText) {
+      calculateResults();
+    }
+    alert(`WPM: ${wpm}, Accuracy: ${accuracy}%, Timer: ${time}s`);
+    handleRestart();
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      setActiveKey(event.key.toLowerCase());
+    };
+
+    const handleKeyUp = () => {
+      setActiveKey(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  const renderKey = (key) => (
+    <div
+      key={key}
+      className={`w-12 h-12 flex items-center font-mono justify-center border rounded ${
+        activeKey === key ? "bg-blue-500 text-white" : "bg-gray-800"
+      }`}
+    >
+      {key.toUpperCase()}
+    </div>
+  );
+
+  const renderRow = (keys) => (
+    <div className="flex gap-1 justify-center mb-1">
+      {keys.map((key) => renderKey(key))}
+    </div>
+  );
 
   return (
     <>
@@ -121,6 +146,7 @@ const TypingSpeedTest = () => {
               <option value={10}>10 words</option>
               <option value={20}>20 words</option>
               <option value={30}>30 words</option>
+              <option value={50}>50 words</option>
             </select>
           </label>
 
@@ -145,7 +171,7 @@ const TypingSpeedTest = () => {
             </button>
             <button
               onClick={handleSubmit}
-              className="bg-blue-500 text-white font-semibold p-2 rounded font-mono  hover:bg-blue-600"
+              className="bg-blue-500 text-white font-semibold p-2 rounded font-mono hover:bg-blue-600"
             >
               Submit
             </button>
@@ -155,6 +181,15 @@ const TypingSpeedTest = () => {
         {!isTyping && userInput && (
           <p className="text-center mt-4 text-green-600">Test completed!</p>
         )}
+
+        {/* On-screen keyboard layout (only visible on large screens) */}
+        <div className="hidden lg:block mt-10">
+          <div className="flex flex-col items-center ">
+            {renderRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"])}
+            {renderRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"])}
+            {renderRow(["z", "x", "c", "v", "b", "n", "m"])}
+          </div>
+        </div>
       </div>
     </>
   );
