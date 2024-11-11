@@ -196,7 +196,11 @@ const TypingSpeedTest = () => {
             </select>
           </label>
 
-          <p className="text-lg mb-4 mt-2 justify-center items-center border-2 font-mono rounded-md p-5 border-gray-300">
+          <p
+            className="text-lg mb-4 mt-2 justify-center items-center border-2 font-mono rounded-md p-5 w-[48rem]
+          
+          border-gray-300 "
+          >
             {isTextLoaded ? currentText : "Loading text..."}
           </p>
 
