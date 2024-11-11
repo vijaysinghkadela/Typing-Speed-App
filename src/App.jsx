@@ -8,8 +8,12 @@ const TypingSpeedTest = () => {
   const [wpm, setWPM] = useState(0);
   const [accuracy, setAccuracy] = useState(0);
   const [isTextLoaded, setIsTextLoaded] = useState(false);
-  const [wordCount, setWordCount] = useState(5);
+  const [wordCount, setWordCount] = useState(30);
   const [activeKey, setActiveKey] = useState(null);
+  const [typingTip, setTypingTip] = useState("");
+  const [isTipLoading, setIsTipLoading] = useState(true);
+
+  const [progress, setProgress] = useState(0);
 
   // Fetch text from API based on word count
   useEffect(() => {
@@ -18,7 +22,9 @@ const TypingSpeedTest = () => {
 
   const fetchNewText = (count) => {
     const sentences = Math.ceil(count / 10);
-    fetch(`https://baconipsum.com/api/?type=all-meat&paras=1&sentences=${sentences}`)
+    fetch(
+      `https://baconipsum.com/api/?type=all-meat&paras=1&sentences=${sentences}`
+    )
       .then((response) => response.json())
       .then((data) => {
         setCurrentText(data[0].split(" ").slice(0, count).join(" "));
@@ -30,6 +36,27 @@ const TypingSpeedTest = () => {
         setIsTextLoaded(true);
       });
   };
+
+  // Fetch typing tips from an API (placeholder URL for example)
+  useEffect(() => {
+    const fetchTypingTip = () => {
+      setIsTipLoading(true);
+      fetch("https://api.typingtips.com/getTip") // Replace with a real API endpoint or use predefined tips
+        .then((response) => response.json())
+        .then((data) => {
+          setTypingTip(data.tip);
+          setIsTipLoading(false);
+        })
+        .catch((error) => {
+          console.error("Error fetching typing tip:", error);
+          setTypingTip(
+            "Practice regularly and focus on accuracy before speed."
+          );
+          setIsTipLoading(false);
+        });
+    };
+    fetchTypingTip();
+  }, []);
 
   const handleWordCountChange = (e) => {
     setWordCount(Number(e.target.value));
@@ -46,12 +73,16 @@ const TypingSpeedTest = () => {
 
   const handleInputChange = (e) => {
     const input = e.target.value;
+    setUserInput(e.target.value);
     setUserInput(input);
 
     if (!isTyping && isTextLoaded) setIsTyping(true);
 
-    const correctChars = input.split("").filter((char, i) => char === currentText[i]).length;
-    const calculatedAccuracy = input.length > 0 ? Math.round((correctChars / input.length) * 100) : 0;
+    const correctChars = input
+      .split("")
+      .filter((char, i) => char === currentText[i]).length;
+    const calculatedAccuracy =
+      input.length > 0 ? Math.round((correctChars / input.length) * 100) : 0;
     setAccuracy(calculatedAccuracy);
 
     if (input === currentText) {
@@ -120,9 +151,24 @@ const TypingSpeedTest = () => {
     </div>
   );
 
+  // Update progress based on user input length
+  useEffect(() => {
+    const calculateProgress = () => {
+      if (currentText.length > 0) {
+        const progressPercentage = Math.min(
+          (userInput.length / currentText.length) * 100,
+          100
+        );
+        setProgress(progressPercentage);
+      }
+    };
+    calculateProgress();
+  }, [userInput, currentText]);
+
   return (
     <>
       <div className="w-screen overflow-hidden flex flex-col">
+        <div>{/* Tip: {} */}</div>
         <h3 className="flex justify-center items-center font-mono text-2xl">
           Typing Speed App
         </h3>
@@ -188,6 +234,33 @@ const TypingSpeedTest = () => {
             {renderRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"])}
             {renderRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"])}
             {renderRow(["z", "x", "c", "v", "b", "n", "m"])}
+          </div>
+        </div>
+        <div>
+          {/* Tip Section */}
+          <div className="w-1/4 p-5 ">
+            <h3 className="font-mono text-lg mb-2">Typing Tip</h3>
+            {isTipLoading ? (
+              <p>Loading tip...</p>
+            ) : (
+              <p className="font-mono text-white">{typingTip}</p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="w-screen flex flex-col items-center p-4">
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-300 rounded h-4 mt-4 max-w-lg">
+              <div
+                style={{ width: `${progress}%` }}
+                className="h-full bg-blue-500 rounded"
+              ></div>
+            </div>
+
+            <div className="mt-2 text-center font-mono">
+              Progress: {Math.round(progress)}%
+            </div>
           </div>
         </div>
       </div>
