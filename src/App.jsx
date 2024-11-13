@@ -12,8 +12,10 @@ const TypingSpeedTest = () => {
   const [activeKey, setActiveKey] = useState(null);
   const [typingTip, setTypingTip] = useState("");
   const [isTipLoading, setIsTipLoading] = useState(true);
-
   const [progress, setProgress] = useState(0);
+  const [timerLimit, setTimerLimit] = useState(2); 
+  const [timerStarted, setTimerStarted] = useState(false);
+  const [isTimerFinished, setIsTimerFinished] = useState(false);
 
   // Fetch text from API based on word count
   useEffect(() => {
@@ -65,15 +67,19 @@ const TypingSpeedTest = () => {
 
   useEffect(() => {
     let timer;
-    if (isTyping) {
+    if (isTyping && time < timerLimit * 60) {
       timer = setInterval(() => setTime((prev) => prev + 1), 1000);
+    } else if (time >= timerLimit * 60) {
+      setIsTimerFinished(true);
+      setIsTyping(false); // Stop typing when timer ends
     }
     return () => clearInterval(timer);
-  }, [isTyping]);
+  }, [isTyping, time, timerLimit]);
 
   const handleInputChange = (e) => {
+    if (isTimerFinished) return; // Prevent input if timer is finished
+
     const input = e.target.value;
-    setUserInput(e.target.value);
     setUserInput(input);
 
     if (!isTyping && isTextLoaded) setIsTyping(true);
@@ -105,6 +111,7 @@ const TypingSpeedTest = () => {
     setWPM(0);
     setAccuracy(0);
     setIsTextLoaded(false);
+    setIsTimerFinished(false);
     fetchNewText(wordCount);
   };
 
@@ -165,6 +172,15 @@ const TypingSpeedTest = () => {
     calculateProgress();
   }, [userInput, currentText]);
 
+  const handleTimerLimitChange = (e) => {
+    setTimerLimit(Number(e.target.value)); // Set selected timer limit
+    setTime(0); // Reset timer
+    setIsTimerFinished(false); // Reset the timer finished state
+    setUserInput(""); // Reset the input
+    setIsTextLoaded(false); // Reload text
+    setTimerStarted(false); // Stop the previous timer if any
+  };
+
   return (
     <>
       <div className="w-screen overflow-hidden flex flex-col">
@@ -180,21 +196,50 @@ const TypingSpeedTest = () => {
           </div>
         )}
 
+        {/* Word Counter  */}
         <div className="flex flex-col items-center p-3 max-w-lg mx-auto">
-          <label className="mb-2 font-mono">
-            Select Word Count:
-            <select
-              value={wordCount}
-              onChange={handleWordCountChange}
-              className="ml-2 p-1 border border-gray-300 rounded font-mono"
-            >
-              <option value={5}>5 words</option>
-              <option value={10}>10 words</option>
-              <option value={20}>20 words</option>
-              <option value={30}>30 words</option>
-              <option value={50}>50 words</option>
-            </select>
-          </label>
+          <div className="flex flex-row justify-between  items-center mb-3 mt-3">
+            <label className="mb-2 font-mono w-[30rem]">
+              Select Word Count:
+              <select
+                value={wordCount}
+                onChange={handleWordCountChange}
+                className="ml-2 p-1 border border-gray-300 rounded font-mono"
+              >
+                <option value={5}>5 words</option>
+                <option value={10}>10 words</option>
+                <option value={20}>20 words</option>
+                <option value={30}>30 words</option>
+                <option value={50}>50 words</option>
+              </select>
+            </label>
+
+            <div className="flex flex-row justify-between items-center mb-3 mt-3">
+              <label className="mb-2 font-mono w-[30rem]">
+                Select Timer (Minutes):
+                <select
+                  value={timerLimit}
+                  onChange={handleTimerLimitChange}
+                  className="ml-2 p-1 border border-gray-300 rounded font-mono"
+                >
+                  <option value={2}>2 minutes</option>
+                  <option value={5}>5 minutes</option>
+                  <option value={10}>10 minutes</option>
+                  <option value={15}>15 minutes</option>
+                </select>
+              </label>
+            </div>
+
+            {/* Tip Section */}
+            <div className="flex flex-col p-5 border-2 mx-4 w-[30rem]">
+              <h3 className="font-mono text-lg mb-2">Typing Tip</h3>
+              {isTipLoading ? (
+                <p>Loading tip...</p>
+              ) : (
+                <p className="font-mono text-white">{typingTip}</p>
+              )}
+            </div>
+          </div>
 
           <p
             className="text-lg mb-4 mt-2 justify-center items-center border-2 font-mono rounded-md p-5 w-[48rem]
@@ -209,7 +254,7 @@ const TypingSpeedTest = () => {
             type="text"
             value={userInput}
             onChange={handleInputChange}
-            disabled={!isTextLoaded}
+            disabled={isTimerFinished || !isTextLoaded} // Disable input after timer ends
           />
 
           <div className="flex items-center gap-3 justify-between mt-4 mx-4">
@@ -227,10 +272,13 @@ const TypingSpeedTest = () => {
             </button>
           </div>
         </div>
-
+        {/* Test completed Info */}
         {!isTyping && userInput && (
           <p className="text-center mt-4 text-green-600">Test completed!</p>
         )}
+
+        {/* Timer Info */}
+        <p className="mt-4">Time Left: {timerLimit * 60 - time}s</p>
 
         {/* On-screen keyboard layout (only visible on large screens) */}
         <div className="hidden lg:block mt-10">
@@ -238,17 +286,6 @@ const TypingSpeedTest = () => {
             {renderRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"])}
             {renderRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"])}
             {renderRow(["z", "x", "c", "v", "b", "n", "m"])}
-          </div>
-        </div>
-        <div>
-          {/* Tip Section */}
-          <div className="w-1/4 p-5 ">
-            <h3 className="font-mono text-lg mb-2">Typing Tip</h3>
-            {isTipLoading ? (
-              <p>Loading tip...</p>
-            ) : (
-              <p className="font-mono text-white">{typingTip}</p>
-            )}
           </div>
         </div>
 
