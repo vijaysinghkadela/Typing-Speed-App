@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import KeyVisualizer from "./components/KeyVisualizer";
+import FetchNewText from "./components/FetchNewText";
 
 const TypingSpeedTest = () => {
   const [currentText, setCurrentText] = useState("");
@@ -13,7 +15,7 @@ const TypingSpeedTest = () => {
   const [typingTip, setTypingTip] = useState("");
   const [isTipLoading, setIsTipLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [timerLimit, setTimerLimit] = useState(2); 
+  const [timerLimit, setTimerLimit] = useState(2);
   const [timerStarted, setTimerStarted] = useState(false);
   const [isTimerFinished, setIsTimerFinished] = useState(false);
 
@@ -173,136 +175,112 @@ const TypingSpeedTest = () => {
   }, [userInput, currentText]);
 
   const handleTimerLimitChange = (e) => {
-    setTimerLimit(Number(e.target.value)); // Set selected timer limit
-    setTime(0); // Reset timer
-    setIsTimerFinished(false); // Reset the timer finished state
-    setUserInput(""); // Reset the input
-    setIsTextLoaded(false); // Reload text
-    setTimerStarted(false); // Stop the previous timer if any
+    setTimerLimit(Number(e.target.value)); // Update the timer limit
+    setTime(0); // Reset the timer
+    setIsTimerFinished(false); // Clear the "timer finished" state
+    setUserInput(""); // Clear the user's input
+    setIsTextLoaded(false); // Fetch fresh text
+    setTimerStarted(false); // Stop any ongoing timer
   };
+
 
   return (
     <>
-      <div className="w-screen overflow-hidden flex flex-col">
-        <div>{/* Tip: {} */}</div>
-        <h3 className="flex justify-center items-center font-mono text-2xl">
-          Typing Speed App
-        </h3>
-        {isTyping && (
-          <div className="mx-2 mt-3 gap-5 text-center flex font-mono justify-center">
-            <p>WPM: {wpm}</p>
-            <p>Accuracy: {accuracy}%</p>
-            <p>Time: {time}s</p>
-          </div>
-        )}
+      <div className="w-screen flex flex-col items-center p-4 space-y-6">
+        {/* Header */}
+        <h1 className="font-mono text-2xl md:text-3xl text-center">
+          Typing Speed Test
+        </h1>
 
-        {/* Word Counter  */}
-        <div className="flex flex-col items-center p-3 max-w-lg mx-auto">
-          <div className="flex flex-row justify-between  items-center mb-3 mt-3">
-            <label className="mb-2 font-mono w-[30rem]">
+        {/* Word Count and Timer Selection */}
+        <div className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Word Count */}
+          <div>
+            <label className="font-mono text-sm md:text-base">
               Select Word Count:
-              <select
-                value={wordCount}
-                onChange={handleWordCountChange}
-                className="ml-2 p-1 border border-gray-300 rounded font-mono"
-              >
-                <option value={5}>5 words</option>
-                <option value={10}>10 words</option>
-                <option value={20}>20 words</option>
-                <option value={30}>30 words</option>
-                <option value={50}>50 words</option>
-              </select>
             </label>
-
-            <div className="flex flex-row justify-between items-center mb-3 mt-3">
-              <label className="mb-2 font-mono w-[30rem]">
-                Select Timer (Minutes):
-                <select
-                  value={timerLimit}
-                  onChange={handleTimerLimitChange}
-                  className="ml-2 p-1 border border-gray-300 rounded font-mono"
-                >
-                  <option value={2}>2 minutes</option>
-                  <option value={5}>5 minutes</option>
-                  <option value={10}>10 minutes</option>
-                  <option value={15}>15 minutes</option>
-                </select>
-              </label>
-            </div>
-
-            {/* Tip Section */}
-            <div className="flex flex-col p-5 border-2 mx-4 w-[30rem]">
-              <h3 className="font-mono text-lg mb-2">Typing Tip</h3>
-              {isTipLoading ? (
-                <p>Loading tip...</p>
-              ) : (
-                <p className="font-mono text-white">{typingTip}</p>
-              )}
-            </div>
+            <select
+              value={wordCount}
+              onChange={(e) => setWordCount(Number(e.target.value))}
+              className="w-full p-2 rounded-md border bg-gray-800 text-white"
+            >
+              <option value={50}>50 words</option>
+              <option value={80}>80 words</option>
+              <option value={100}>100 words</option>
+              <option value={200}>200 words</option>
+              <option value={500}>500 words</option>
+            </select>
           </div>
 
-          <p
-            className="text-lg mb-4 mt-2 justify-center items-center border-2 font-mono rounded-md p-5 w-[48rem]
-          
-          border-gray-300 "
-          >
+          {/* Timer Limit */}
+          <div>
+            <label className="font-mono text-sm md:text-base">
+              Select Timer (Minutes):
+            </label>
+            <select
+              value={timerLimit}
+              onChange={handleTimerLimitChange}
+              className="w-full p-2 rounded-md border bg-gray-800 text-white"
+            >
+              <option value={2}>2 minutes</option>
+              <option value={5}>5 minutes</option>
+              <option value={10}>10 minutes</option>
+              <option value={15}>15 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Typing Area */}
+        <div className="w-full max-w-lg">
+          <p className="font-mono text-sm md:text-base mb-4 text-center border p-4 rounded-md bg-gray-800 text-white">
             {isTextLoaded ? currentText : "Loading text..."}
           </p>
-
           <input
-            className="border-b-2 border-gray-300 focus:outline-none focus:border-blue-500 font-mono text-lg p-3 w-full"
             type="text"
             value={userInput}
             onChange={handleInputChange}
-            disabled={isTimerFinished || !isTextLoaded} // Disable input after timer ends
+            disabled={isTimerFinished || !isTextLoaded}
+            className="w-full p-3 border-b-2 text-sm md:text-base focus:outline-none focus:border-blue-500"
+            placeholder="Start typing here..."
           />
+        </div>
 
-          <div className="flex items-center gap-3 justify-between mt-4 mx-4">
+        {/* Stats and Actions */}
+        <div className="w-full max-w-lg space-y-4">
+          <div className="flex justify-around font-mono text-sm md:text-base">
+            <p>WPM: {wpm}</p>
+            <p>Accuracy: {accuracy}%</p>
+            <p>Time Left: {Math.max(timerLimit * 60 - time, 0)}s</p>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-around">
             <button
-              className="bg-gray-500-500 text-white font-semibold p-2 rounded font-mono hover:bg-red-600"
+              className="bg-gray-800 text-white py-2 px-4 rounded-md hover:bg-gray-600"
               onClick={handleRestart}
             >
-              Restart Test
+              Restart
             </button>
             <button
+              className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
               onClick={handleSubmit}
-              className="bg-blue-500 text-white font-semibold p-2 rounded font-mono hover:bg-blue-600"
             >
               Submit
             </button>
           </div>
         </div>
-        {/* Test completed Info */}
-        {!isTyping && userInput && (
-          <p className="text-center mt-4 text-green-600">Test completed!</p>
-        )}
 
-        {/* Timer Info */}
-        <p className="mt-4">Time Left: {timerLimit * 60 - time}s</p>
-
-        {/* On-screen keyboard layout (only visible on large screens) */}
-        <div className="hidden lg:block mt-10">
-          <div className="flex flex-col items-center ">
-            {renderRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"])}
-            {renderRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"])}
-            {renderRow(["z", "x", "c", "v", "b", "n", "m"])}
+        {/* Progress Bar */}
+        <div className="w-full max-w-lg">
+          <div className="bg-gray-300 rounded h-4">
+            <div
+              style={{ width: `${progress}%` }}
+              className="bg-blue-500 h-full rounded"
+            ></div>
           </div>
-        </div>
-
-        <div>
-          <div className="w-screen flex flex-col items-center p-4">
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-300 rounded h-4 mt-4 max-w-lg">
-              <div
-                style={{ width: `${progress}%` }}
-                className="h-full bg-blue-500 rounded"
-              ></div>
-            </div>
-
-            <div className="mt-2 text-center font-mono">
-              Progress: {Math.round(progress)}%
-            </div>
-          </div>
+          <p className="text-center font-mono mt-2">
+            Progress: {Math.round(progress)}%
+          </p>
         </div>
       </div>
     </>
